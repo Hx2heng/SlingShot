@@ -105,12 +105,12 @@
 		var game = {
 				score: 0,
 				time: 3000,
-				frames: 10, //游戏帧数
+				frames: 20, //游戏帧数
 				bulletsNum: 30, //子弹个数
 				bullets: [], //子弹对象集合
 				targetNum: 0, //目标个数
 				targets: {}, //目标集合
-				targetsCreartTime: 2, //目标出现间隔
+				targetsCreartTime: 80, //目标出现间隔
 				clientX: c_w / 2, //玩家触碰x轴
 				clientY: (4 * c_h) / 5, //玩家触碰y轴
 				reloadTime: 12, //填弹时间
@@ -472,9 +472,9 @@
 					var $this = this;
 
 					var s = 0;
-					for (var i = 0; i < game.targets.length; i++) {
+					for (var i in game.targets) {
 						s = Math.sqrt(Math.pow((this.cx - game.targets[i].cx), 2) + Math.pow((this.cy - game.targets[i].cy), 2));
-						c.rect($this.cx, $this.cy, $this.r, $this.r);
+						
 
 						if ((s <= (this.r + game.targets[i].r))) {
 							game.targets[i].byAttack();
