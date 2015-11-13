@@ -105,12 +105,12 @@
 		var game = {
 				score: 0,
 				time: 3000,
-				frames: 20, //游戏帧数
+				frames: 10, //游戏帧数
 				bulletsNum: 30, //子弹个数
 				bullets: [], //子弹对象集合
-				targetNum: 30, //目标个数
-				targets: [], //目标集合
-				targetsCreartTime: 80, //目标出现间隔
+				targetNum: 0, //目标个数
+				targets: {}, //目标集合
+				targetsCreartTime: 2, //目标出现间隔
 				clientX: c_w / 2, //玩家触碰x轴
 				clientY: (4 * c_h) / 5, //玩家触碰y轴
 				reloadTime: 12, //填弹时间
@@ -143,7 +143,7 @@
 						for (var i = 0; i < $this.bullets.length; i++) {
 							$this.bullets[i].drawBg(); //画子弹
 						}
-						for (var i = 0; i < $this.targets.length; i++) {
+						for (var i in $this.targets) {
 							$this.targets[i].draw(); //画目标
 						}
 
@@ -160,10 +160,9 @@
 						}
 						//集合控制
 						//删除越界目标
-						for (var i = 0; i < game.targets.length; i++) {
+						for (var i in game.targets) {
 							if (game.targets[i].isDie) {
-								game.targets[i] = null;
-								game.targets.remove(i);
+								delete game.targets[i];
 							}
 						}
 						//删除越界子弹
@@ -193,9 +192,11 @@
 					
 				},
 				creatTarget: function(type, dir) {
-					var target = new Target(type, dir);
-					this.targets.push(target);
-					this.targetsNum--;
+					//this.targetNum++;
+					this.targets[++this.targetNum] = new Target(type, dir);
+					console.log(this.targets);
+					//this.targets.push(target);
+					//this.targetsNum--;
 				},
 				initPosition: function() {
 					this.clientX = c_w / 2; //玩家触碰x轴
