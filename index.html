@@ -10,16 +10,39 @@
 <title>弹弓</title>
 <link rel="stylesheet" type="text/css" href="css/base.css">
 <link rel="stylesheet" type="text/css" href="css/common.css">
-
+<style>
+	.loading{position: absolute;top: 50%;left:50%;color:white;-webkit-transform: translate(-50%,-50%);transform: translate(-50%,-50%);}
+</style>
 </head>
 
 <body>
+	<div class="loading">
+		<p>加载中:<span class="progressing">0</span>%</p>
+	</div>
 	<div id="game-wrap">
 		<canvas id="game"></canvas>
 	</div>
 <script src="js/motion.js"></script>
-<script src="js/common.js"></script>
+<script src="js/AnimationHask.js"></script>
+<script src="js/game.js"></script>
+<script>
+	$(document).ready(function(){
+		var game  = new Game();
+		game.gamestart();
+		game.on('gameover',function(score){
+			console.log(score);
+			//game.restart();
+		});
+		game.on('loading',function(p){
+			console.log(p);
+			$('.progressing').html(p);
+		})
+		game.on('loaded',function(){
+			$('.loading').hide();
+		})
 
+	})
+</script>
 
 </body>
 </html>

@@ -1,26 +1,25 @@
-(function($) {
+(function() {
+	window.Game = function(){
+	var $$this = this;	
+	$$this.handler = {};
 	var gameWrap = $('#game-wrap'); //游戏容器
 	var canvas = $('#game').get(0); //游戏canvas容器
 	var c = canvas.getContext('2d'); //画布操作对象
 	var c_w = canvas.width,
 		c_h = canvas.height; //画布的宽高
-	var config = {}; //游戏配置
+	var config = {
+		gameTime:5,//游戏时间
+		reloadTime:20, //发射间隔
+		targetsCreartTime:1 //靶子出现间隔
+	}; //游戏配置
 	var resources = { //游戏资源
 		'imgPath': './images/',
 		'imgs': ['buttlet1.png', 'bg.jpg', 'target1.png', 'target2.png','catapult.png'
 			//, '4.jpg', '5.jpg', '6.jpg', '7.jpg', '8.jpg', '9.jpg', '10.jpg', '11.jpg', '12.jpg', '13.jpg', '14.jpg', '15.jpg', '16.jpg', '17.jpg', '18.jpg'
 		]
 	};
-
-	$(window).on('resize', setCanvas);
-	//阻止滚动
-	document.body.addEventListener('touchmove', function(event) { 
-		event.preventDefault(); 
-	}, false);
-
-	setCanvas(); //初始容器设置
-	loadGame(); //游戏预加载
-	function setCanvas() {
+	//设置背景
+	function setCanvas(){
 		var width = 640,
 			height = 1010,
 			w_w = $(window).width(),
@@ -35,7 +34,6 @@
 		c_w = canvas.width = gameWrap.offset().width;
 		c_h = canvas.height = gameWrap.offset().height - 2;
 	}
-
 	//创建图片函数
 	function creatImg(path) {
 		// var imgPath = 'images/'+path;
@@ -44,7 +42,6 @@
 		img.src = imgPath;
 		//$(img).attr('alt','');
 		return img;
-
 	}
 	//随机函数
 	function rd(n, m) {
@@ -63,7 +60,6 @@
 		}
 		this.length -= 1
 	}
-
 	//加载游戏
 	function loadGame() {
 		var imgPaths = []; //所有图片路径
@@ -74,6 +70,7 @@
 		var imgSum = 0; //图片元素个数
 		var loadedImg = 0; //已加载个数
 		var progress = 0; //加载进度
+		var progressing = 0; //加载进度
 		for (i = 0; i < imgPaths.length; i++) {
 			var img = new Image();
 			img.src = imgPaths[i];
@@ -86,93 +83,181 @@
 			images[i].onload = function() {
 				loadedImg++;
 				progress = (loadedImg * 100 / imgSum).toFixed(2);
-				loadEvent(progress);
-				if (progress == 100) {
-					console.log('图片加载完成!');
-					gameStart();
-				}
+				
+				//loadEvent(progress);
+				// if (progress == 100) {
+				// 	$$this.fire('loaded');
+				// 	gameStart();
+				// }
+				var clock = requestAnimationFrame(function(){
+					progressing++;
+					$$this.fire('loading',progressing);
+					if(progressing<progress){
+						clock = requestAnimationFrame(arguments.callee);
+					}else if(progressing==100){
+						cancelAnimationFrame(clock);
+						$$this.fire('loaded');
+						gameStart();
+					}
+				});
 			}
 		}
-		//加载事件
-		function loadEvent(progress) {
-			console.log(progress);
-		}
 
+		//加载事件
+		// function loadEvent(progress) {
+			
+		// }
 	}
 
-	function gameStart() {
 
-		var game = {
-				score: 0,
-				time: 3000,
-				frames: 20, //游戏帧数
+	//方法
+	$$this.init = (function(){
+		//阻止滚动
+		document.body.addEventListener('touchmove', function(event) { 
+			event.preventDefault(); 
+		}, false);
+		setCanvas(); //初始容器设置
+		$(window).on('resize', setCanvas);
+	})();
+    $$this.gamestart = function(){
+        loadGame(); //游戏预加载
+    }
+    $$this.restart = function(){
+		if(!$$this.game) throw new Error('游戏未加载完成');
+		$$this.game.restart();
+	};
+	//事件
+	// ('loading',progress)
+	// ('loaded')
+	// ('gameover',this.score)
+	$$this.on=function(type, fn) {//自定义事件
+	    if (typeof this.handler[type] == 'undefined') {
+	        this.handler[type] = [];
+	    }
+	    this.handler[type].push(fn);
+	    }
+	$$this.fire = function(type, data) {
+	    if (this.handler[type] instanceof Array) {
+	        var handler = this.handler[type];
+	        for (var i = 0; i < handler.length; i++) {
+	            handler[i](data);
+	        }
+	    }
+	}
+	$$this.tigger  = function (type){
+	    if (typeof this.handler[type] == 'undefined') {
+	       return;
+	    }
+	    this.handler[type]();
+	}
+	
+
+
+		
+
+	function gameStart() {
+		$$this.game = {
+				time: config.gameTime,
 				bulletsNum: 30, //子弹个数
-				bullets: [], //子弹对象集合
 				targetNum: 0, //目标个数
-				targets: {}, //目标集合
-				targetsCreartTime: 80, //目标出现间隔
+				targetsCreartTime: config.targetsCreartTime, //目标出现间隔
 				clientX: c_w / 2, //玩家触碰x轴
 				clientY: (4 * c_h) / 5, //玩家触碰y轴
-				reloadTime: 12, //填弹时间
-				isReload: false,
-				gameTime: 0,
+				reloadTime:config.reloadTime, //填弹时间
+				firstLoad:true,
 				init: function() {
 					var $this = this;
-					$this.bgx1 = 0;
-					$this.bgx2 = c_w-1;
-					$this.drawBg(); //设置背景
-					catapult.init(); //弹弓初始化
+					this.score = 0;
+					this.usedTime = 0;
+					this.gameTime = 0;
+					this.creatTime = new Date().getTime();
+					this.isReload  = false;
+					this.targets = {};
+					this.bullets = [];
 					$this.creatBullet(); //创建子弹
-					$this.getPoint(); //屏幕事件
+					if(this.firstLoad){
+						this.bgx1 = 0;
+						this.bgx2 = c_w-1;
+						catapult.init(); //弹弓初始化
+						$this.getPoint(); //屏幕事件
+					}
 					$this.interval(); //游戏计时器
+					this.firstLoad = false;
 				},
 				interval: function() {
 					var $this = this;
-					var reloadTime = this.reloadTime;
-					$this.timer = setInterval(function() {
-						$this.gameTime++;
-						$this.drawBg(); //设置背景
-						catapult.drawBg(); //画弹弓
-						catapult.draw2Line(); //画弹弓线
-						if ($this.gameTime % $this.targetsCreartTime == 0) {
-							$this.creatTarget(1, rd(1, 2)); //创建目标
+					this.timer = requestAnimationFrame(function() {
+					   	$this.render();
+					   	//游戏时间用完结束
+						if($this.usedTime<$this.time){
+							$this.timer = requestAnimationFrame(arguments.callee);
 						}
-						if ($this.gameTime % ($this.targetsCreartTime * 2) == 0) {
-							$this.creatTarget(2, rd(1, 2)); //创建目标
+						else{
+							$this.over();
 						}
-						for (var i = 0; i < $this.bullets.length; i++) {
-							$this.bullets[i].drawBg(); //画子弹
-						}
-						for (var i in $this.targets) {
-							$this.targets[i].draw(); //画目标
-						}
+					});
+				},
+				getUsedTime:function(){
+					var $this = this;
+					var nowTime = new Date().getTime();
+					$this.usedTime = parseInt((nowTime - $this.creatTime) / 1000);
+					return $this.usedTime;
+				},
+				//渲染
+				render:function(){
 
-						$this.drawInfo(); //画说明
+					// console.log(this);  
+					this.getUsedTime();
+					this.gameTime++;
+					this.drawBg(); //设置背景
 
-						//填弹动作
-						if ($this.isReload) {
-							$this.reloadTime--;
+					catapult.render();//画弹弓
+					if (this.gameTime % this.targetsCreartTime == 0) {
+						this.creatTarget(1, rd(1, 2)); //创建目标
+					}
+					if (this.gameTime % (this.targetsCreartTime * 2) == 0) {
+						this.creatTarget(2, rd(1, 2)); //创建目标
+					}
 
+
+					//填弹动作
+					if (this.isReload) {
+						this.reloadTime--;
+
+					}
+					
+					if (this.reloadTime <= 0) {
+						this.isReload = false;
+						this.reloadTime = config.reloadTime;
+					}
+					//集合控制
+					for (var i in this.targets) {
+						this.targets[i].render();
+						//删除越界/死亡目标
+						if (this.targets[i].isDie||this.targets[i].isOver) {
+							delete this.targets[i];
 						}
-						if ($this.reloadTime <= 0) {
-							$this.isReload = false;
-							$this.reloadTime = reloadTime;
-						}
-						//集合控制
-						//删除越界目标
-						for (var i in game.targets) {
-							if (game.targets[i].isDie) {
-								delete game.targets[i];
-							}
-						}
+					}
+					//子弹
+					for (var i = 0; i < this.bullets.length; i++) {
+						this.bullets[i].render();
 						//删除越界子弹
-						for (var i = 0; i < game.bullets.length; i++) {
-							if (game.bullets[i].isDie) {
-								game.bullets[i] = null;
-								game.bullets.remove(i);
-							}
+						if (this.bullets[i].isDie) {
+							this.bullets[i] = null;
+							this.bullets.remove(i);
 						}
-					}, game.frames);
+					}
+
+					this.drawInfo(); //画说明
+					
+				},
+				over:function(){
+					$$this.fire('gameover',this.score);
+				},
+				restart:function(){
+					cancelAnimationFrame(this.timer);
+					this.init();
+					console.log('restart');
 				},
 				reloadBullet: function() {
 					var $this = this;
@@ -194,7 +279,7 @@
 				creatTarget: function(type, dir) {
 					//this.targetNum++;
 					this.targets[++this.targetNum] = new Target(type, dir);
-					console.log(this.targets);
+					// console.log(this.targets);
 					//this.targets.push(target);
 					//this.targetsNum--;
 				},
@@ -250,9 +335,6 @@
 							gameWrap.unbind('touchend');
 						};
 					});
-
-
-
 				},
 				drawBg: function(bgPath) {
 					var $this = this;
@@ -273,8 +355,8 @@
 					c.textAlign = "start";
 					// 用渐变填色
 					c.fillStyle = 'white';
-					c.fillText('score:' + game.score, 10, 30);
-					c.fillText('time:' + Math.floor(game.gameTime / 50) + 's', 10, 60);
+					c.fillText('score:' + this.score, 10, 30);
+					c.fillText('time:' + (this.time-this.usedTime) + 's', 10, 60);
 					c.restore();
 				}
 			}
@@ -293,26 +375,26 @@
 				},
 				init: function() {
 					this.line.offsetWidth = this.line.width;
-					this.draw2Line();
-					this.drawBg();
-					this.interval();
-
+					//this.draw2Line();
+					//this.drawBg();
+					//game.interval.call(this);
 				},
-				interval: function() {
+				render: function() {
 					var $this = this;
-					this.timer = setInterval(function() {
-						if (!game.isReload) {
-							$this.getPosition(); //弹弓位置设定
+					this.drawBg();
+					this.draw2Line();
+					if (!$$this.game.isReload) {
+						//弹弓位置设定
+						$this.getPosition(); 
 
-						} else {
-							$this.gotoPosition(game.clientX, game.clientY);
-						}
-					}, game.frames);
+					} else {
+							$this.gotoPosition($$this.game.clientX, $$this.game.clientY);
+					}
 				},
 				getPosition: function() {
 					var $this = this;
-					this.x = game.clientX;
-					this.y = game.clientY + 22; //！！！！！！
+					this.x = $$this.game.clientX;
+					this.y = $$this.game.clientY + 22; //！！！！！！
 					this.intensity = ((this.y - (4 * c_h) / 5 - 22) / 20).toFixed(2) + 1;
 					this.line.width = $this.line.offsetWidth - this.intensity * 1.2;
 					//console.log($this.line.offsetWidth);
@@ -351,7 +433,7 @@
 			this.width = 0;
 			this.type = type || 'type_1';
 			this.selected = true;
-			this.creatTime = game.reloadTime;
+			this.creatTime = $$this.game.reloadTime;
 			this.g = .3; //重力
 			//this.f = .001;//阻力
 			this.state = false; //是否飞行中
@@ -359,9 +441,10 @@
 		}
 		Bullet.prototype = {
 				init: function() {
-					this.drawBg();
+					
 					this.getPosition();
-					this.interval();
+					// this.interval();
+					//game.interval.call(this);
 					this.creat();
 					this.height = 0;
 					this.width = 0;
@@ -374,15 +457,8 @@
 					this.vangle = rd(-3, 3);
 					this.angleDir =1;
 				},
-				interval: function() {
-					var $this = this;
-					this.timer = setInterval(function() {
-						$this.status();
-						
-
-					}, game.frames);
-				},
-				status:function(){
+				render: function() {
+					this.drawBg();
 					if (this.selected) {
 							this.creat();
 							this.getPosition();
@@ -408,7 +484,6 @@
 						this.x = c_w / 2 - this.img.width / 2;
 						this.y = c_h - catapult.height - this.img.height / 2;
 					}
-					
 				},
 				shake:function(intensity){
 					this.angle +=intensity*this.angleDir;
@@ -441,16 +516,16 @@
 				},
 				getPosition: function(x, y) {
 					if (this.selected && this.creatTime <= 0) {
-						this.x = game.clientX - this.img.width / 2;
-						this.y = game.clientY - this.img.height / 2;
+						this.x = $$this.game.clientX - this.img.width / 2;
+						this.y = $$this.game.clientY - this.img.height / 2;
 					} 
 					this.cx = this.x + this.width / 2;
 					this.cy = this.y + this.height / 2;
 				},
 				setV: function() { 
 					if (!this.state) {
-						this.sx = game.clientX - c_w / 2;
-						this.sy = game.clientY - (4 * c_h) / 5;
+						this.sx = $$this.game.clientX - c_w / 2;
+						this.sy = $$this.game.clientY - (4 * c_h) / 5;
 						this.sxy = this.sx / this.sy,
 							this.vy = catapult.intensity * 4;
 						this.vx = (this.vy * this.sxy) * 0.3;
@@ -472,12 +547,12 @@
 					var $this = this;
 
 					var s = 0;
-					for (var i in game.targets) {
-						s = Math.sqrt(Math.pow((this.cx - game.targets[i].cx), 2) + Math.pow((this.cy - game.targets[i].cy), 2));
+					for (var i in $$this.game.targets) {
+						s = Math.sqrt(Math.pow((this.cx - $$this.game.targets[i].cx), 2) + Math.pow((this.cy - $$this.game.targets[i].cy), 2));
 						
 
-						if ((s <= (this.r + game.targets[i].r))) {
-							game.targets[i].byAttack();
+						if ((s <= (this.r + $$this.game.targets[i].r))) {
+							$$this.game.targets[i].byAttack();
 
 							continue;
 						}
@@ -498,6 +573,8 @@
 			this.vy = rd(1, 3) * 0.3;
 			this.score = 0;
 			this.dir = dir || 2;
+			this.isDie = false;
+			this.isOver = false;
 			return this.init();
 		}
 		Target.prototype = {
@@ -525,22 +602,23 @@
 				} else {
 					this.x = c_w + 50;
 				}
-				this.interval();
 			},
-			interval: function() {
-				var $this = this;
-				this.timer = setInterval(function() {
-					//移动
-					$this.move();
-					//状态
-					$this.status();
-				}, game.frames);
+			render: function() {
+				//
+				this.draw();
+				//移动
+				this.move();
+				//状态
+				this.status();
 			},
 			status:function(){
 				//生命判断
-				if ((this.hp <= 0||this.y > c_h) && !this.isDie) {
+				if (this.hp <= 0 && !this.isDie) {
 						this.die();
-					}
+				}
+				else if(this.y > c_h&& !this.isOver){
+					this.over();
+				}
 			},
 			move: function() {
 				var $this = this;
@@ -565,15 +643,17 @@
 				this.hp--;
 			},
 			die: function() {
-				game.score += this.score;
+				$$this.game.score += this.score;
 				this.isDie = true;
-				
+			},
+			over:function(){
+				this.isOver = true;
 			}
 		}
 
 
-		game.init(); //游戏初始化
+		$$this.game.init(); //游戏初始化
 
 	}
-
-})(Zepto)
+};
+})()
