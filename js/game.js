@@ -8,7 +8,7 @@
 	var c_w = canvas.width,
 		c_h = canvas.height; //画布的宽高
 	var config = {
-		gameTime:5,//游戏时间
+		gameTime:30,//游戏时间
 		reloadTime:20, //发射间隔
 		targetsCreartTime:1 //靶子出现间隔
 	}; //游戏配置
