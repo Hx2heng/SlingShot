@@ -10,7 +10,7 @@
 	var config = {
 		gameTime:30,//游戏时间
 		reloadTime:20, //发射间隔
-		targetsCreartTime:1 //靶子出现间隔
+		targetsCreartTime:20//靶子出现间隔
 	}; //游戏配置
 	var resources = { //游戏资源
 		'imgPath': './images/',
@@ -441,10 +441,7 @@
 		}
 		Bullet.prototype = {
 				init: function() {
-					
 					this.getPosition();
-					// this.interval();
-					//game.interval.call(this);
 					this.creat();
 					this.height = 0;
 					this.width = 0;
